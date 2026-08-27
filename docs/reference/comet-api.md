@@ -211,6 +211,7 @@ This section is **this repo’s tool surface**, not the full firmware catalog. K
 | Tool | Signature | Annotations | Description |
 |------|-----------|-------------|-------------|
 | `kvm_send_text` | `(text, wpm?)` | write, destructive | Type a string (atomic press pattern) |
+| `kvm_terminal_run` | `(command, timeout_seconds=30, poll_interval_seconds=0.5)` | write, destructive | POSIX-only, isolated `sh -c` command with OCR-confirmed submission and bounded visual observation. `timeout_seconds` is capped at 300 and `poll_interval_seconds` must be at least 0.1. It refuses submission if HID skips input characters. Returns `completed`, `timeout`, or `not_submitted`; output is best-effort visible-console text, never exact stdout/stderr. |
 | `kvm_send_keys` | `(combo)` | write, destructive | Send key chord (e.g. "Ctrl+Alt+Delete") |
 | `kvm_hold_key` | `(key, duration_ms)` | write, destructive | Press and hold (for auto-repeat scrolling) |
 | `kvm_release_all` | `()` | write, destructive, idempotent | Force-release all held keys |
@@ -311,7 +312,7 @@ The MCP process runs **two background asyncio loops** for transport reliability:
 
 > **Source:** `src/kvm_core/comet/client.py` (`_watchdog_loop` and `_pinger_loop`). Verified 2026-07-10.
 
-**Design implication:** These loops are transport reliability mechanisms. The BIOS state tracker remains on demand; it is not an always-on third screenshot/OCR loop. A future bounded terminal observer should poll only for the duration of its active tool call. See `docs/decisions.md` D7 and D-K7.
+**Design implication:** These loops are transport reliability mechanisms. The BIOS state tracker remains on demand; it is not an always-on third screenshot/OCR loop. `kvm_terminal_run` likewise polls only for its active tool call and discards its transcript when it returns. See `docs/decisions.md` D7 and D-K7.
 
 ## Known Firmware Bugs & Workarounds
 

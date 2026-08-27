@@ -21,6 +21,7 @@ from src.kvm_core.tools_core import (
     kvm_select_target,
     kvm_send_keys,
     kvm_send_text,
+    kvm_terminal_run,
     kvm_status,
     resolve_screenshot_ref,
 )
@@ -88,6 +89,7 @@ __all__ = [
     "kvm_select_target",
     "kvm_send_keys",
     "kvm_send_text",
+    "kvm_terminal_run",
     "kvm_status",
     "resolve_screenshot_ref",
 ]

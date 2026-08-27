@@ -159,6 +159,7 @@ Add to any MCP client config:
 | Tool | Description |
 |------|-------------|
 | `kvm_send_text(text, wpm?)` | Type a string (atomic press pattern fixes stuck-key bug) |
+| `kvm_terminal_run(command, timeout_seconds?, poll_interval_seconds?)` | Run one POSIX command through the visible console with bounded, best-effort OCR output; not exact stdout/stderr |
 | `kvm_send_keys(combo)` | Send a key chord (e.g. "Ctrl+Alt+Delete", "F5", "Win+L") |
 | `kvm_hold_key(key, duration_ms)` | Press and hold a key (for auto-repeat scrolling) |
 | `kvm_release_all()` | Force-release all held keys |

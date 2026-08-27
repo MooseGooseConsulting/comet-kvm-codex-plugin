@@ -11,6 +11,7 @@ from mcp.server.fastmcp import Image
 from src.kvm_core.runtime import DEFAULT_TARGET, get_kvm_runtime, resolve_default_target
 from src.kvm_core.server import mcp
 from src.kvm_core.ocr import validate_psm
+from src.kvm_core.terminal import run_posix_terminal_command
 
 LOG = logging.getLogger("kvm_core.tools")
 
@@ -18,6 +19,8 @@ ATX_DISABLED_WARNING = (
     "ATX subsystem disabled (enabled=false): the power field does not reflect "
     "the real machine state; classify from the console instead."
 )
+MAX_TERMINAL_TIMEOUT_SECONDS = 300
+MIN_TERMINAL_POLL_INTERVAL_SECONDS = 0.1
 
 
 async def _managed_client(target: str | None = None):
@@ -239,6 +242,46 @@ async def kvm_send_text(text: str, wpm: int = 200) -> dict:
     async with _operation_fence():
         client = await _managed_client()
         return await client.send_text(text, wpm)
+
+
+@mcp.tool(name="kvm_terminal_run", annotations={"readOnlyHint": False, "destructiveHint": True})
+async def kvm_terminal_run(
+    command: str,
+    timeout_seconds: float = 30,
+    poll_interval_seconds: float = 0.5,
+) -> dict:
+    """Run one POSIX command through the visible console with bounded OCR observation.
+
+    The command is wrapped in an isolated ``sh -c`` invocation, so shell state
+    does not persist. Its transcript is best-effort visible-console evidence,
+    not exact stdout/stderr. A timeout never sends Ctrl+C; it only releases HID
+    state and reports that command completion was not observed.
+    """
+    if not command.strip():
+        raise ValueError("command must not be empty")
+    if "\n" in command or "\r" in command:
+        raise ValueError("command must be a single line; newline input can submit Enter before OCR confirmation")
+    if timeout_seconds < 0:
+        raise ValueError("timeout_seconds must be non-negative")
+    if timeout_seconds > MAX_TERMINAL_TIMEOUT_SECONDS:
+        raise ValueError(f"timeout_seconds must be <= {MAX_TERMINAL_TIMEOUT_SECONDS}")
+    if poll_interval_seconds < 0:
+        raise ValueError("poll_interval_seconds must be non-negative")
+    if poll_interval_seconds < MIN_TERMINAL_POLL_INTERVAL_SECONDS:
+        raise ValueError(
+            f"poll_interval_seconds must be >= {MIN_TERMINAL_POLL_INTERVAL_SECONDS}"
+        )
+    _require_tesseract()
+    runtime = get_kvm_runtime()
+    async with _operation_fence(runtime):
+        client = await runtime.ensure_connected()
+        return await run_posix_terminal_command(
+            client,
+            runtime.ocr_mgr,
+            command,
+            timeout_seconds=timeout_seconds,
+            poll_interval_seconds=poll_interval_seconds,
+        )
 
 
 @mcp.tool(name="kvm_send_keys", annotations={"readOnlyHint": False, "destructiveHint": True})

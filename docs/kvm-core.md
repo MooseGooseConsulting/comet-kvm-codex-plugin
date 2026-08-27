@@ -128,7 +128,7 @@ These hints tell the client and operator what a tool can do. They do not grant o
 
 Read-only examples: `kvm_screenshot`, `kvm_screenshot_to_file`, `kvm_ocr_screenshot`, `kvm_status`, `comet_sysinfo`.
 
-Destructive or physical-input examples: `kvm_send_text`, `kvm_send_keys`, `kvm_hold_key`, mouse tools, `kvm_ocr_click`, `comet_atx_power`, `comet_atx_click`, `comet_media_upload`, `comet_media_mount`.
+Destructive or physical-input examples: `kvm_send_text`, `kvm_terminal_run`, `kvm_send_keys`, `kvm_hold_key`, mouse tools, `kvm_ocr_click`, `comet_atx_power`, `comet_atx_click`, `comet_media_upload`, `comet_media_mount`.
 
 ## 8. Security Model
 
@@ -156,9 +156,13 @@ An agent receives ordinary MCP tool results directly. It does not need to inspec
 
 This is appropriate for BIOS, recovery, network-down hosts, and other pixel-only states. It cannot recover bytes that scrolled off the HDMI viewport before a frame was captured, and OCR cannot provide a trustworthy process exit status by itself.
 
-### Planned bounded command observer
+### Bounded POSIX command observer
 
-`kvm_terminal_run` is **Planned** as a single bounded call that sends one command, polls only while that command is active, accumulates visible OCR deltas, and returns the transcript before discarding it. It should use a shell-specific start/end marker where possible, crop to the terminal region, avoid rerunning OCR when the frame is unchanged, and report uncertainty or truncation rather than silently inventing completeness.
+`kvm_terminal_run(command, timeout_seconds?, poll_interval_seconds?)` is one bounded call for a POSIX-visible shell. It creates unique start/end/typed markers, types an isolated `sh -c` wrapper, and OCR-confirms the shell plus all three markers before it presses Enter. The timeout is capped at 300 seconds and the poll interval must be at least 0.1 seconds, keeping the operation fence bounded. If Comet HID reports skipped characters or OCR confirmation fails, it returns `status: "not_submitted"` and does not submit the command.
+
+After submission it polls screenshots only for that call, skips OCR for identical frames, and merges only exact text overlap. Its result has `status` (`completed` or `timeout` after submission), a best-effort visible `transcript`, marker evidence, poll/duration counts, and explicit uncertainty/truncation flags. `exit_code` is populated only when the exact end marker and numeric code are visibly OCR-observed. On timeout it releases HID state without sending Ctrl+C, so the result explicitly warns that the remote command may still be running.
+
+This is not exact stdout/stderr: viewport scrollback, whitespace, stream separation, fast changes, and OCR mistakes remain uncertain. It has no background transcript and does not persist command output.
 
 An always-on transcript buffer is **Deferred**. Persistent background OCR would add cost, retain potentially sensitive shell text, and still fail to guarantee capture of fast scrollback.
 

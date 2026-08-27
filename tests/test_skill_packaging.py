@@ -59,6 +59,16 @@ def test_plugin_and_readme_advertise_both_skill_routes() -> None:
         assert f"{skill_name}/" in readme
 
 
+def test_plugin_manifest_version_matches_authoritative_package_version() -> None:
+    """Publishing must not install metadata for a stale plugin release."""
+    manifest = json.loads((REPO_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    package = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'^version = "([^"]+)"$', package, flags=re.MULTILINE)
+    assert match is not None, "pyproject.toml must declare a project version"
+
+    assert manifest["version"] == match.group(1)
+
+
 def test_skill_frontmatter_is_minimal_and_matches_directory() -> None:
     for skill_dir in _skill_dirs():
         frontmatter, body = _frontmatter(skill_dir / "SKILL.md")

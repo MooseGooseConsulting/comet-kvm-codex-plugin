@@ -43,7 +43,7 @@ useful.
 | BIOS sidecar | Specialist | `src/bios_sidecar/` owns optional BIOS observation, graph/state, VLM grounding, navigation, mutation, recovery, and trace resources/tools. |
 | Host OCR | Current | Pillow decodes frames; pytesseract returns ordered text and word boxes with a timeout off the asyncio event loop. |
 | MCP text OCR | Current | `kvm_ocr_text` captures a frame and runs host Tesseract. GL.iNet's product UI Text Recognition is browser-side Tesseract.js and is not a device/API backend for this process. |
-| Bounded KVM command observer | Planned | One tool call polls visible terminal output for one command, returns it, and discards the transcript. |
+| Bounded KVM command observer | Current (POSIX) | `kvm_terminal_run` types an isolated POSIX `sh -c` wrapper, OCR-confirms it before Enter, polls visible output only for that call, then returns and discards a best-effort transcript. |
 | Exact target shell | Candidate | Optional AsyncSSH companion for network-reachable targets; separate credentials and trust policy. |
 | Always-on OCR transcript | Deferred | Avoid background cost, sensitive-text retention, and false claims of complete scrollback. |
 
@@ -116,7 +116,7 @@ work belong under `.claude/skills/comet-bios-triage/`.
 
 ## Open Architecture Questions
 
-- Which shells and marker syntax must the Planned bounded KVM command observer support first? Resolve before implementing `kvm_terminal_run`.
+- Should a future bounded observer add a PowerShell wrapper without weakening the POSIX-only v1 completion evidence?
 - Which target host aliases and known-host source should an AsyncSSH companion accept? Resolve before promoting exact target shell from Candidate.
 - Does recorded terminal OCR show enough jitter to justify fuzzy matching beyond exact overlap and standard-library `difflib`? Resolve only from fixtures.
 

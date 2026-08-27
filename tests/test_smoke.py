@@ -33,6 +33,7 @@ EXPECTED_TOOLS = {
     "kvm_connect",
     "kvm_disconnect",
     "kvm_send_text",
+    "kvm_terminal_run",
     "kvm_send_keys",
     "kvm_hold_key",
     "kvm_release_all",
